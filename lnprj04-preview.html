@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LNPRJ04 — AI 第二大腦</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <style>
+    :root {
+      --bg:     #0d1117;
+      --bg2:    #161b22;
+      --bg3:    #21262d;
+      --border: #30363d;
+      --text:   #e6edf3;
+      --muted:  #8b949e;
+      --green:  #3fb950;
+      --blue:   #58a6ff;
+      --purple: #bc8cff;
+      --orange: #f78166;
+      --yellow: #e3b341;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif;
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+    }
+    .nav-brand { font-weight: 700; font-size: .95rem; color: var(--green); text-decoration: none; letter-spacing: .06em; }
+    .nav-links  { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: .85rem; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 4rem 2rem;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(63,185,80,.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .45rem;
+      background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3);
+      border-radius: 20px; padding: .35rem 1rem;
+      font-size: .78rem; color: var(--green); letter-spacing: .06em;
+      margin-bottom: 2rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.4rem,6vw,4.5rem); font-weight: 800;
+      line-height: 1.08; letter-spacing: -.025em; margin-bottom: 1.5rem;
+    }
+    .hero h1 .hl {
+      background: linear-gradient(130deg, var(--green) 0%, var(--blue) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p { font-size: 1.15rem; color: var(--muted); max-width: 580px; margin-bottom: 3rem; }
+    .hero-stats { display: flex; gap: 3.5rem; justify-content: center; }
+    .stat-num   { font-size: 2.2rem; font-weight: 800; color: var(--green); }
+    .stat-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+    /* ── SECTION ── */
+    section {
+      padding: 6rem 2rem;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .sec-label { font-size: .75rem; color: var(--green); text-transform: uppercase; letter-spacing: .15em; margin-bottom: .6rem; }
+    .sec-title { font-size: clamp(1.8rem,4vw,2.4rem); font-weight: 700; letter-spacing: -.02em; margin-bottom: 1rem; }
+    .sec-desc  { color: var(--muted); font-size: 1rem; max-width: 580px; margin-bottom: 3rem; }
+    hr.divider { border: none; border-top: 1px solid var(--border); }
+
+    /* ── DEMO ── */
+    .demo-grid {
+      display: grid; grid-template-columns: 1fr 1.15fr; gap: 3rem; align-items: start;
+    }
+    .scenario-list { display: flex; flex-direction: column; gap: .9rem; }
+    .scenario-btn {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.2rem 1.4rem; cursor: pointer; text-align: left;
+      transition: border-color .2s, background .2s; color: var(--text);
+    }
+    .scenario-btn:hover               { border-color: var(--green); background: rgba(63,185,80,.04); }
+    .scenario-btn.active              { border-color: var(--green); background: rgba(63,185,80,.08); }
+    .scenario-btn .s-icon             { font-size: 1.4rem; margin-bottom: .4rem; }
+    .scenario-btn .s-title            { font-weight: 600; font-size: .9rem; margin-bottom: .2rem; }
+    .scenario-btn .s-desc             { font-size: .78rem; color: var(--muted); }
+
+    /* phone */
+    .phone {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 22px; overflow: hidden;
+      max-width: 340px; margin: 0 auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,.4);
+    }
+    .phone-hd {
+      background: #06c755; padding: .9rem 1.2rem;
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .phone-av {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    }
+    .phone-name   { color: #fff; font-weight: 600; font-size: .88rem; }
+    .phone-status { color: rgba(255,255,255,.75); font-size: .72rem; }
+    .phone-body   { padding: 1rem; min-height: 300px; display: flex; flex-direction: column; gap: .7rem; }
+
+    .msg {
+      max-width: 82%; padding: .6rem .85rem; border-radius: 12px;
+      font-size: .84rem; line-height: 1.55; animation: msgIn .25s ease;
+      white-space: pre-line;
+    }
+    @keyframes msgIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    .msg.user { background: #06c755; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg.ai   { background: var(--bg3); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg.typing { background: var(--bg3); align-self: flex-start; border-bottom-left-radius: 4px; padding: .75rem 1rem; }
+    .dots { display: flex; gap: 4px; align-items: center; }
+    .dots span {
+      width: 6px; height: 6px; background: var(--muted);
+      border-radius: 50%; animation: dot 1.2s infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes dot { 0%,60%,100% { transform:translateY(0); opacity:.4; } 30% { transform:translateY(-4px); opacity:1; } }
+
+    /* ── GRAPH ── */
+    .graph-wrap {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; height: 480px; position: relative;
+    }
+    .graph-legend {
+      position: absolute; bottom: 1rem; right: 1rem;
+      background: rgba(13,17,23,.88); border: 1px solid var(--border);
+      border-radius: 8px; padding: .65rem .9rem; font-size: .73rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: .4rem; margin-bottom: .3rem; }
+    .legend-item:last-child { margin-bottom: 0; }
+    .legend-dot  { width: 9px; height: 9px; border-radius: 50%; }
+
+    /* ── ARCHITECTURE ── */
+    .arch-stack {
+      border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+      margin-bottom: 3rem;
+    }
+    .arch-layer {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      transition: background .2s;
+    }
+    .arch-layer:last-child { border-bottom: none; }
+    .arch-layer:hover { background: var(--bg3); }
+    .arch-layer-hd { display: flex; align-items: center; gap: .9rem; margin-bottom: .75rem; }
+    .layer-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .layer-title { font-weight: 600; font-size: .95rem; }
+    .layer-desc  { font-size: .84rem; color: var(--muted); margin-bottom: .9rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .chip {
+      display: flex; align-items: center; gap: .45rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; padding: .4rem .8rem; font-size: .78rem;
+    }
+    .chip-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    .arch-arrow {
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      text-align: center; padding: .45rem; color: var(--muted); font-size: 1.1rem;
+    }
+
+    /* flows */
+    .flows { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .flow-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.4rem;
+    }
+    .flow-card h4 { font-size: .9rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: .4rem; }
+    .flow-steps { display: flex; flex-direction: column; gap: .55rem; }
+    .flow-step  { display: flex; align-items: flex-start; gap: .65rem; font-size: .82rem; color: var(--muted); }
+    .step-num {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      background: var(--bg3); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .68rem; font-weight: 700; color: var(--text);
+    }
+
+    /* ── TECH ── */
+    .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px,1fr)); gap: 1rem; }
+    .tech-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.2rem;
+      transition: border-color .2s, transform .2s;
+    }
+    .tech-card:hover { border-color: var(--green); transform: translateY(-3px); }
+    .tech-icon { font-size: 1.7rem; margin-bottom: .65rem; }
+    .tech-name { font-weight: 600; font-size: .88rem; margin-bottom: .2rem; }
+    .tech-role { font-size: .76rem; color: var(--muted); }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem; text-align: center;
+      color: var(--muted); font-size: .82rem;
+    }
+    footer a { color: var(--green); text-decoration: none; }
+
+    @media (max-width: 720px) {
+      .demo-grid { grid-template-columns: 1fr; }
+      .flows     { grid-template-columns: 1fr; }
+      .hero-stats { gap: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="https://lnprj.neillin-lct.workers.dev/" class="nav-brand">LNPRJ</a>
+  <ul class="nav-links">
+    <li><a href="#demo">示範</a></li>
+    <li><a href="#graph">知識圖譜</a></li>
+    <li><a href="#arch">架構</a></li>
+    <li><a href="#tech">技術棧</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">✅ &nbsp;LNPRJ04 · 上線中</div>
+  <h1>AI <span class="hl">第二大腦</span></h1>
+  <p>透過 LINE 傳送任何資訊——網址、語音、截圖、想法——AI 自動整理成你可以隨時查詢的個人知識庫。</p>
+  <div class="hero-stats">
+    <div>
+      <div class="stat-num">4</div>
+      <div class="stat-label">輸入方式</div>
+    </div>
+    <div>
+      <div class="stat-num">∞</div>
+      <div class="stat-label">知識累積</div>
+    </div>
+    <div>
+      <div class="stat-num">24/7</div>
+      <div class="stat-label">隨時可用</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- DEMO -->
+<section id="demo">
+  <div class="sec-label">方向一 · 概念展示</div>
+  <h2 class="sec-title">LINE 對話示範</h2>
+  <p class="sec-desc">選擇一個情境，看看你傳訊息後 AI 如何回應並整理知識。</p>
+
+  <div class="demo-grid">
+    <div class="scenario-list">
+      <button class="scenario-btn active" onclick="runScenario(0)">
+        <div class="s-icon">🔗</div>
+        <div class="s-title">傳送網址</div>
+        <div class="s-desc">貼一篇文章連結，AI 自動摘要並存入知識庫</div>
+      </button>
+      <button class="scenario-btn" onclick="runScenario(1)">
+        <div class="s-icon">❓</div>
+        <div class="s-title">查詢知識庫</div>
+        <div class="s-desc">用自然語言問問題，AI 從你的筆記裡找答案</div>
+      </button>
+      <button class="scenario-btn" onclick="runScenario(2)">
+        <div class="s-icon">🎙️</div>
+        <div class="s-title">語音輸入</div>
+        <div class="s-desc">傳語音訊息，Whisper 自動轉文字並整理</div>
+      </button>
+      <button class="scenario-btn" onclick="runScenario(3)">
+        <div class="s-icon">📸</div>
+        <div class="s-title">截圖存取</div>
+        <div class="s-desc">傳圖片，Claude Vision 讀取內容並存入</div>
+      </button>
+    </div>
+
+    <div class="phone">
+      <div class="phone-hd">
+        <div class="phone-av">🧠</div>
+        <div>
+          <div class="phone-name">Second Brain</div>
+          <div class="phone-status">線上</div>
+        </div>
+      </div>
+      <div class="phone-body" id="phone-body"></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- KNOWLEDGE GRAPH -->
+<section id="graph">
+  <div class="sec-label">方向二 · 知識視覺化</div>
+  <h2 class="sec-title">知識圖譜</h2>
+  <p class="sec-desc">每條存入的知識成為一個節點，AI 自動建立概念之間的連結。拖曳節點可以探索關係。</p>
+  <div class="graph-wrap" id="graph-wrap">
+    <div class="graph-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>AI 工具</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>閱讀筆記</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>個人想法</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>學習資源</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ARCHITECTURE -->
+<section id="arch">
+  <div class="sec-label">方向四 · 系統架構</div>
+  <h2 class="sec-title">背後怎麼運作的</h2>
+  <p class="sec-desc">整個系統分成五層，訊息從你的手機出發，一路到存進知識庫，每個環節都有對應的工具負責。</p>
+
+  <div class="arch-stack">
+
+    <!-- L1 -->
+    <div class="arch-layer">
+      <div class="arch-layer-hd">
+        <div class="layer-num" style="background:rgba(63,185,80,.15);color:var(--green)">1</div>
+        <div class="layer-title">使用者端 — 你的 LINE</div>
+      </div>
+      <div class="layer-desc">你透過 LINE App 傳送訊息，可以是任何形式：文字、網址、語音、圖片，甚至只是一個隨手的想法。</div>
+      <div class="chips">
+        <div class="chip"><div class="chip-dot" style="background:#06c755"></div>LINE App（iOS / Android）</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--green)"></div>文字 / 網址</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--green)"></div>語音訊息</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--green)"></div>圖片 / 截圖</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--green)"></div>隨手想法</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↓ &nbsp;HTTPS Webhook</div>
+
+    <!-- L2 -->
+    <div class="arch-layer">
+      <div class="arch-layer-hd">
+        <div class="layer-num" style="background:rgba(88,166,255,.15);color:var(--blue)">2</div>
+        <div class="layer-title">通訊閘道 — LINE Messaging API</div>
+      </div>
+      <div class="layer-desc">LINE 官方提供的 Messaging API，把你傳的每一條訊息透過 Webhook 即時轉發到你的伺服器。這是整個系統的「門鈴」，訊息進來它就響。</div>
+      <div class="chips">
+        <div class="chip"><div class="chip-dot" style="background:var(--blue)"></div>Messaging API（官方）</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--blue)"></div>Webhook Event</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--blue)"></div>Channel Token 驗證</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--blue)"></div>Reply API</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↓ &nbsp;HTTP POST（JSON）</div>
+
+    <!-- L3 -->
+    <div class="arch-layer">
+      <div class="arch-layer-hd">
+        <div class="layer-num" style="background:rgba(188,140,255,.15);color:var(--purple)">3</div>
+        <div class="layer-title">應用伺服器 — VPS 上的 Python</div>
+      </div>
+      <div class="layer-desc">跑在雲端 VPS 的 Python 應用（FastAPI），是整個系統的「調度中心」。它接收訊息後判斷類型，決定要交給哪個 AI 模組處理，24 小時在線。</div>
+      <div class="chips">
+        <div class="chip"><div class="chip-dot" style="background:var(--purple)"></div>FastAPI（Python）</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--purple)"></div>訊息類型路由</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--purple)"></div>URL 內容抓取</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--purple)"></div>任務排程</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--purple)"></div>錯誤處理</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↓ &nbsp;API 呼叫</div>
+
+    <!-- L4 -->
+    <div class="arch-layer">
+      <div class="arch-layer-hd">
+        <div class="layer-num" style="background:rgba(227,179,65,.15);color:var(--yellow)">4</div>
+        <div class="layer-title">AI 處理層 — Claude + Whisper</div>
+      </div>
+      <div class="layer-desc">兩個 AI 模型各司其職。Claude 負責理解文字與圖片、生成摘要、自動打標籤、回答查詢；Whisper 專門把語音訊息轉成文字後再交給 Claude。</div>
+      <div class="chips">
+        <div class="chip"><div class="chip-dot" style="background:var(--yellow)"></div>Claude API（理解 / 視覺 / 生成）</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--yellow)"></div>Whisper API（語音 → 文字）</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--yellow)"></div>自動摘要</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--yellow)"></div>自動標籤分類</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--yellow)"></div>語意搜尋</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↓ &nbsp;讀寫</div>
+
+    <!-- L5 -->
+    <div class="arch-layer">
+      <div class="arch-layer-hd">
+        <div class="layer-num" style="background:rgba(247,129,102,.15);color:var(--orange)">5</div>
+        <div class="layer-title">儲存層 — 你的知識庫</div>
+      </div>
+      <div class="layer-desc">所有整理好的知識都存在 SQLite 資料庫裡。每筆記錄包含原始內容、AI 摘要、標籤、來源類型、時間戳記，讓你可以用自然語言問問題找到它。</div>
+      <div class="chips">
+        <div class="chip"><div class="chip-dot" style="background:var(--orange)"></div>SQLite 資料庫</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--orange)"></div>原始內容</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--orange)"></div>摘要 + 標籤</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--orange)"></div>語意嵌入向量</div>
+        <div class="chip"><div class="chip-dot" style="background:var(--orange)"></div>時間軸索引</div>
+      </div>
+    </div>
+
+  </div><!-- /arch-stack -->
+
+  <!-- TWO FLOWS -->
+  <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:1.4rem;">兩種核心流程</h3>
+  <div class="flows">
+    <div class="flow-card">
+      <h4>📥 存入流程（你傳訊息）</h4>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="step-num">1</div><span>你在 LINE 傳送訊息（文字 / 語音 / 圖片 / 網址）</span></div>
+        <div class="flow-step"><div class="step-num">2</div><span>LINE API 把訊息 POST 到你的 VPS</span></div>
+        <div class="flow-step"><div class="step-num">3</div><span>伺服器判斷訊息類型並路由</span></div>
+        <div class="flow-step"><div class="step-num">4</div><span>語音 → Whisper 轉文字；圖片 → Claude Vision 讀取</span></div>
+        <div class="flow-step"><div class="step-num">5</div><span>Claude 生成摘要並自動打標籤</span></div>
+        <div class="flow-step"><div class="step-num">6</div><span>存入 SQLite，LINE 回覆「✅ 已儲存」確認</span></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h4>🔍 查詢流程（你問問題）</h4>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="step-num">1</div><span>你在 LINE 用自然語言問問題</span></div>
+        <div class="flow-step"><div class="step-num">2</div><span>伺服器識別為「查詢」指令（非存入）</span></div>
+        <div class="flow-step"><div class="step-num">3</div><span>Claude 把問題轉成語意向量</span></div>
+        <div class="flow-step"><div class="step-num">4</div><span>從 SQLite 找出最相關的知識片段</span></div>
+        <div class="flow-step"><div class="step-num">5</div><span>Claude 綜合片段生成自然語言回答</span></div>
+        <div class="flow-step"><div class="step-num">6</div><span>LINE 回覆答案 + 引用來源筆記</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- TECH STACK -->
+<section id="tech">
+  <div class="sec-label">技術棧</div>
+  <h2 class="sec-title">用到的工具</h2>
+  <p class="sec-desc">每個技術都有它特定的職責，組合在一起才是完整的系統。</p>
+  <div class="tech-grid">
+    <div class="tech-card">
+      <div class="tech-icon">💬</div>
+      <div class="tech-name">LINE Messaging API</div>
+      <div class="tech-role">通訊介面 — 接收與回覆訊息</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🐍</div>
+      <div class="tech-name">Python / FastAPI</div>
+      <div class="tech-role">應用伺服器 — 任務調度與路由</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🤖</div>
+      <div class="tech-name">Claude API</div>
+      <div class="tech-role">AI 核心 — 理解、摘要、回答</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🎙️</div>
+      <div class="tech-name">Whisper API</div>
+      <div class="tech-role">語音轉文字 — 處理語音輸入</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🗄️</div>
+      <div class="tech-name">SQLite</div>
+      <div class="tech-role">知識儲存 — 輕量本地資料庫</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">☁️</div>
+      <div class="tech-name">VPS（Hetzner）</div>
+      <div class="tech-role">雲端主機 — 24/7 持續運行</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>LNPRJ04 · AI 第二大腦 · Neil Lin · 2026</p>
+  <p style="margin-top:.5rem;font-size:.76rem;">← <a href="https://lnprj.neillin-lct.workers.dev/">回到 LNPRJ 索引</a></p>
+</footer>
+
+<script>
+// =====================
+// DEMO CHAT SIMULATION
+// =====================
+const SCENARIOS = [
+  [
+    { r:'user',   t:'🔗 https://www.blocktempo.com/singapore-foreign-minister-nanoclaw-raspberry-pi-ai-second-brain-diplomat/', d:0 },
+    { r:'typing', d:700 },
+    { r:'ai',     t:'📖 正在讀取文章內容...', d:1700 },
+    { r:'typing', d:2300 },
+    { r:'ai',     t:'✅ 已存入知識庫\n\n主題：AI Agent 應用 / 政治人物\n摘要：新加坡外交部長 Vivian Balakrishnan 以開源框架 NanoClaw 搭建個人 AI 助理，整合語意記憶與語音輸入，三個月後已成為不可或缺的工作工具。\n標籤：#AI-Agent #NanoClaw #第二大腦 #新加坡', d:3200 },
+  ],
+  [
+    { r:'user',   t:'我看過哪些關於 AI Agent 的東西？', d:0 },
+    { r:'typing', d:600 },
+    { r:'ai',     t:'🔍 搜尋你的知識庫中...', d:1400 },
+    { r:'typing', d:2100 },
+    { r:'ai',     t:'找到 3 筆相關記錄：\n\n① NanoClaw 介紹（5/18）\n新加坡外長用的 500 行 AI 框架，建在 Claude Agent SDK 上\n\n② Claude Agent SDK 文件（5/15）\nAnthropic 官方 SDK，支援工具呼叫與多步驟代理\n\n③ Hermes Agent 更新（5/17）\n一條 proxy 指令整合三家 AI 訂閱', d:2900 },
+  ],
+  [
+    { r:'user',   t:'🎙️ [語音訊息 00:21]', d:0 },
+    { r:'typing', d:600 },
+    { r:'ai',     t:'🎙️ Whisper 語音轉文字中...', d:1300 },
+    { r:'typing', d:2100 },
+    { r:'ai',     t:'📝 轉錄完成：\n「想到一個點子，可以把 LNPRJ04 的知識庫開放 read-only API，讓作品集頁面直接讀取真實資料來渲染知識圖譜，這樣圖譜就會隨著我真正在用而自動更新」\n\n✅ 已存入 #想法 #LNPRJ04 #架構設計', d:2900 },
+  ],
+  [
+    { r:'user',   t:'📸 [圖片]', d:0 },
+    { r:'typing', d:600 },
+    { r:'ai',     t:'👁️ Claude Vision 讀取中...', d:1300 },
+    { r:'typing', d:2100 },
+    { r:'ai',     t:'✅ 圖片內容已識別\n\n內容：一張系統架構圖，顯示 FastAPI → Claude API → SQLite 的資料流，各模組標注了輸入輸出格式。\n\n已存入 #架構圖 #技術參考 #LNPRJ04', d:2900 },
+  ],
+];
+
+let activeScenario = -1;
+let timers = [];
+
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+function runScenario(idx) {
+  if (activeScenario === idx) return;
+  activeScenario = idx;
+  clearTimers();
+
+  document.querySelectorAll('.scenario-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+
+  const body = document.getElementById('phone-body');
+  body.innerHTML = '';
+
+  SCENARIOS[idx].forEach(msg => {
+    const t = setTimeout(() => {
+      const old = body.querySelector('.msg.typing');
+      if (old) old.remove();
+
+      const el = document.createElement('div');
+      if (msg.r === 'typing') {
+        el.className = 'msg typing';
+        el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+      } else {
+        el.className = `msg ${msg.r}`;
+        el.textContent = msg.t;
+      }
+      body.appendChild(el);
+      body.scrollTop = body.scrollHeight;
+    }, msg.d);
+    timers.push(t);
+  });
+}
+
+setTimeout(() => runScenario(0), 400);
+
+// =====================
+// KNOWLEDGE GRAPH (D3)
+// =====================
+function buildGraph() {
+  const wrap = document.getElementById('graph-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+
+  const COLORS = {
+    0: '#3fb950', // green  — AI 工具
+    1: '#58a6ff', // blue   — 閱讀筆記
+    2: '#bc8cff', // purple — 個人想法
+    3: '#e3b341', // yellow — 學習資源
+  };
+
+  const nodes = [
+    {id:'AI工具',       g:0, r:20},
+    {id:'NanoClaw',    g:0, r:13},
+    {id:'Claude SDK',  g:0, r:14},
+    {id:'AI Agent',    g:0, r:13},
+    {id:'Whisper',     g:0, r:10},
+
+    {id:'閱讀筆記',     g:1, r:18},
+    {id:'Vivian 演講',  g:1, r:12},
+    {id:'Karpathy',    g:1, r:11},
+    {id:'FT 文章',      g:1, r:9},
+
+    {id:'個人想法',     g:2, r:16},
+    {id:'LNPRJ04 設計', g:2, r:13},
+    {id:'知識圖譜想法', g:2, r:10},
+
+    {id:'學習資源',     g:3, r:15},
+    {id:'LINE API 文件',g:3, r:10},
+    {id:'FastAPI 教學', g:3, r:9},
+    {id:'SQLite 指南',  g:3, r:9},
+  ];
+
+  const links = [
+    ['AI工具','NanoClaw'],['AI工具','Claude SDK'],['AI工具','AI Agent'],['AI工具','Whisper'],
+    ['NanoClaw','Claude SDK'],['NanoClaw','Vivian 演講'],
+    ['閱讀筆記','Vivian 演講'],['閱讀筆記','Karpathy'],['閱讀筆記','FT 文章'],
+    ['Vivian 演講','LNPRJ04 設計'],['AI Agent','LNPRJ04 設計'],['Karpathy','AI Agent'],
+    ['個人想法','LNPRJ04 設計'],['個人想法','知識圖譜想法'],
+    ['LNPRJ04 設計','LINE API 文件'],
+    ['學習資源','LINE API 文件'],['學習資源','FastAPI 教學'],['學習資源','SQLite 指南'],
+    ['FT 文章','AI Agent'],
+  ].map(([s,t]) => ({source:s, target:t}));
+
+  const svg = d3.select('#graph-wrap').append('svg').attr('width',W).attr('height',H);
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link',      d3.forceLink(links).id(d=>d.id).distance(90))
+    .force('charge',    d3.forceManyBody().strength(-220))
+    .force('center',    d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide().radius(d=>d.r+18));
+
+  const link = svg.append('g')
+    .selectAll('line').data(links).join('line')
+    .attr('stroke','#30363d').attr('stroke-width',1.5);
+
+  const nodeG = svg.append('g')
+    .selectAll('g').data(nodes).join('g')
+    .call(d3.drag()
+      .on('start',(e,d)=>{ if(!e.active) sim.alphaTarget(.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag', (e,d)=>{ d.fx=e.x; d.fy=e.y; })
+      .on('end',  (e,d)=>{ if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
+    );
+
+  nodeG.append('circle')
+    .attr('r', d=>d.r)
+    .attr('fill',   d=> COLORS[d.g]+'22')
+    .attr('stroke', d=> COLORS[d.g])
+    .attr('stroke-width', 1.8);
+
+  nodeG.append('text')
+    .text(d=>d.id)
+    .attr('text-anchor','middle')
+    .attr('dy', d=> d.r + 13)
+    .attr('font-size','11px')
+    .attr('fill','#8b949e');
+
+  const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+
+  sim.on('tick', () => {
+    link
+      .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nodeG.attr('transform', d => `translate(${clamp(d.x,d.r,W-d.r)},${clamp(d.y,d.r,H-d.r)})`);
+  });
+}
+
+window.addEventListener('load', buildGraph);
+</script>
+
+</body>
+</html>
