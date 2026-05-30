@@ -666,80 +666,8 @@ function buildGraph() {
 
 window.addEventListener('load', buildGraph);
 </script>
-<script>
-(function() {
-  const style = document.createElement('style');
-  style.textContent = `
-    #lnprj-sidebar {
-      width: 220px; min-height: 100vh;
-      background: #0d1117; border-right: 1px solid #21262d;
-      position: fixed; left: 0; top: 0;
-      overflow-y: auto; padding: 1.5rem 0;
-      z-index: 200;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    #lnprj-sidebar .sb-brand {
-      padding: 0 1.2rem 1.5rem;
-      font-size: .78rem; font-weight: 800;
-      letter-spacing: .16em; color: #3fb950;
-      border-bottom: 1px solid #21262d; margin-bottom: 1rem;
-    }
-    #lnprj-sidebar .sb-brand a { color: inherit; text-decoration: none; }
-    #lnprj-sidebar .sb-label {
-      padding: .3rem 1.2rem; font-size: .68rem;
-      color: #8b949e; letter-spacing: .1em;
-      text-transform: uppercase; margin-bottom: .3rem;
-    }
-    #lnprj-sidebar .sb-link {
-      display: block; padding: .42rem 1.2rem;
-      font-size: .8rem; color: #8b949e;
-      text-decoration: none;
-      transition: color .15s, background .15s;
-      border-radius: 6px; margin: 0 .4rem;
-    }
-    #lnprj-sidebar .sb-link:hover { color: #e6edf3; background: rgba(255,255,255,.05); }
-    #lnprj-sidebar .sb-link.active { color: #e6edf3; background: rgba(63,185,80,.1); }
-    #lnprj-sidebar .sb-num { color: #30363d; margin-right: .5rem; font-size: .72rem; }
-    #lnprj-main-wrap { margin-left: 220px; }
-    nav { display: none !important; }
-    @media (max-width: 768px) {
-      #lnprj-sidebar { display: none; }
-      #lnprj-main-wrap { margin-left: 0; }
-      nav { display: flex !important; }
-    }
-  `;
-  document.head.appendChild(style);
 
-  const sidebar = document.createElement('aside');
-  sidebar.id = 'lnprj-sidebar';
-  sidebar.innerHTML = `
-    <div class="sb-brand"><a href="https://lnprj.neillin-lct.workers.dev/">LNPRJ</a></div>
-    <div class="sb-label">索引</div>
-    <a class="sb-link" href="https://lnprj.neillin-lct.workers.dev/">索引頁</a>
-    <div class="sb-label" style="margin-top:.8rem">作品</div>
-    <div id="sb-projects"></div>
-  `;
-
-  const wrapper = document.createElement('div');
-  wrapper.id = 'lnprj-main-wrap';
-  while (document.body.firstChild) wrapper.appendChild(document.body.firstChild);
-  document.body.appendChild(sidebar);
-  document.body.appendChild(wrapper);
-
-  fetch('https://lnprj.neillin-lct.workers.dev/projects.json')
-    .then(r => r.json())
-    .then(projects => {
-      const el = document.getElementById('sb-projects');
-      projects.forEach(p => {
-        const a = document.createElement('a');
-        const isActive = location.href.includes('lnprj04') && p.id === '04';
-        a.className = 'sb-link' + (isActive ? ' active' : '');
-        a.href = p.url;
-        a.innerHTML = `<span class="sb-num">${p.id}</span>${p.title}`;
-        el.appendChild(a);
-      });
-    });
-})();
-</script>
+<script src="https://lnprj.neillin-lct.workers.dev/lnprj-nav.js"></script>
+<script>LNPRJ.init({ current: 4, basePath: '../' });</script>
 </body>
 </html>
